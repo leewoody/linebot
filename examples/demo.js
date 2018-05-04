@@ -1,13 +1,36 @@
+require('dotenv').config()
+
 const linebot = require('../index.js');
 
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const cp = require('child_process');
+
+// base URL for webhook server
+//const baseURL = 'https://21f6b15c.ngrok.io/linewebhook'; //process.env.baseUrl;
+const baseURL = 'https://emmasvn.cmes.com.tw/Socialkit/Script'; //process.env.baseUrl;
+
+// create Express app
+// about Express itself: https://expressjs.com/
+const app = express();
+
+// serve static and downloaded files
+app.use('/static', express.static('static'));
+app.use('/downloaded', express.static('downloaded'));
+
 const bot = linebot({
-  channelId: process.env.CHANNEL_ID,
-  channelSecret: process.env.CHANNEL_SECRET,
-  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
+  channelId: '1576320506',
+  channelSecret: '1912205cfc205f878eb011409e5d72df',
+  channelAccessToken: 'xKd2a0hzbJesXlnv221X6DKmZz6zr6vovyOgtrafQ/WJ17MfuDCHDM5JpzybkCeIjLnHyVR9t0z4r2C+XJBswyMp7/psCWcoTCZDKVXL0Kugm0Q6JxmuNdPiLfdtOs7ea3PGRxiwkVOQHHIwa97/3QdB04t89/1O/w1cDnyilFU=',
   verify: true // default=true
 });
 
 bot.on('message', function (event) {
+
+console.log(event);
+const buttonsImageURL = baseURL + '/static/buttons/1040.jpg';
+          
   switch (event.message.type) {
     case 'text':
       switch (event.message.text) {
@@ -17,9 +40,11 @@ bot.on('message', function (event) {
           });
           break;
         case 'Member':
+        if(event.source.member()){
           event.source.member().then(function (member) {
             return event.reply(JSON.stringify(member));
           });
+        }
           break;
         case 'Picture':
           event.reply({
@@ -38,13 +63,13 @@ bot.on('message', function (event) {
           });
           break;
         case 'Push':
-          bot.push('U17448c796a01b715d293c34810985a4c', ['Hey!', 'สวัสดี ' + String.fromCharCode(0xD83D, 0xDE01)]);
+          bot.push('Ub225c98178bd4fef4ad1adf0b624bfba', ['Hey!', 'สวัสดี ' + String.fromCharCode(0xD83D, 0xDE01)]);
           break;
         case 'Push2':
-          bot.push('Cba71ba25dafbd6a1472c655fe22979e2', 'Push to group');
+          bot.push('R32777cf452cb419075801d3b77e123ed', 'Push to group');
           break;
         case 'Multicast':
-          bot.push(['U17448c796a01b715d293c34810985a4c', 'Cba71ba25dafbd6a1472c655fe22979e2'], 'Multicast!');
+          bot.push(['Ub225c98178bd4fef4ad1adf0b624bfba', 'R32777cf452cb419075801d3b77e123ed'], 'Multicast!');
           break;
         case 'Confirm':
           event.reply({
@@ -71,8 +96,149 @@ bot.on('message', function (event) {
         case 'Version':
           event.reply('linebot@' + require('../package.json').version);
           break;
+        case 'profile':
+          if (event.source.userId) {
+            return bot.getUserProfile(event.source.userId)
+              .then((profile) => event.reply(
+                [
+                  `Display name: ${profile.displayName}`,
+                  `Status message: ${profile.statusMessage}`,
+                ]
+              ));
+          } else {
+            return event.reply( 'Bot can\'t use profile API without user ID');
+          }  
+          break;
+        case 'buttons':
+          return event.reply(
+            {
+              type: 'template',
+              altText: 'Buttons alt text',
+              template: {
+                type: 'buttons',
+                thumbnailImageUrl: buttonsImageURL,
+                title: 'My button sample',
+                text: 'Hello, my button',
+                actions: [
+                  { label: 'Go to line.me', type: 'uri', uri: 'https://line.me' },
+                  { label: 'Say hello1', type: 'postback', data: 'hello こんにちは' },
+                  { label: '言 hello2', type: 'postback', data: 'hello こんにちは', text: 'hello こんにちは' },
+                  { label: 'Say message', type: 'message', text: 'Rice=米' },
+                ],
+              },
+            }
+          );  
+          break;
+          case 'carousel':
+          return event.reply(
+            {
+              type: 'template',
+              altText: 'Carousel alt text',
+              template: {
+                type: 'carousel',
+                columns: [
+                  {
+                    thumbnailImageUrl: buttonsImageURL,
+                    title: 'hoge',
+                    text: 'fuga',
+                    actions: [
+                      { label: 'Go to line.me', type: 'uri', uri: 'https://line.me' },
+                      { label: 'Say hello1', type: 'postback', data: 'hello こんにちは' },
+                    ],
+                  },
+                  {
+                    thumbnailImageUrl: buttonsImageURL,
+                    title: 'hoge',
+                    text: 'fuga',
+                    actions: [
+                      { label: '言 hello2', type: 'postback', data: 'hello こんにちは', text: 'hello こんにちは' },
+                      { label: 'Say message', type: 'message', text: 'Rice=米' },
+                    ],
+                  },
+                ],
+              },
+            }
+          );
+        case 'image carousel':
+          return event.reply(
+            {
+              type: 'template',
+              altText: 'Image carousel alt text',
+              template: {
+                type: 'image_carousel',
+                columns: [
+                  {
+                    imageUrl: buttonsImageURL,
+                    action: { label: 'Go to LINE', type: 'uri', uri: 'https://line.me' },
+                  },
+                  {
+                    imageUrl: buttonsImageURL,
+                    action: { label: 'Say hello1', type: 'postback', data: 'hello こんにちは' },
+                  },
+                  {
+                    imageUrl: buttonsImageURL,
+                    action: { label: 'Say message', type: 'message', text: 'Rice=米' },
+                  },
+                  {
+                    imageUrl: buttonsImageURL,
+                    action: {
+                      label: 'datetime',
+                      type: 'datetimepicker',
+                      data: 'DATETIME',
+                      mode: 'datetime',
+                    },
+                  },
+                ]
+              },
+            }
+          );
+        case 'datetime':
+          return event.reply(
+            {
+              type: 'template',
+              altText: 'Datetime pickers alt text',
+              template: {
+                type: 'buttons',
+                text: 'Select date / time !',
+                actions: [
+                  { type: 'datetimepicker', label: 'date', data: 'DATE', mode: 'date' },
+                  { type: 'datetimepicker', label: 'time', data: 'TIME', mode: 'time' },
+                  { type: 'datetimepicker', label: 'datetime', data: 'DATETIME', mode: 'datetime' },
+                ],
+              },
+            }
+          );
+          break;  
+        case 'imagemap':
+          return event.reply(
+            {
+              type: 'imagemap',
+              baseUrl: baseURL+ '/static/rich',
+              altText: 'Imagemap alt text',
+              baseSize: { width: 1040, height: 1040 },
+              actions: [
+                { area: { x: 0, y: 0, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/manga/en' },
+                { area: { x: 520, y: 0, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/music/en' },
+                { area: { x: 0, y: 520, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/play/en' },
+                { area: { x: 520, y: 520, width: 520, height: 520 }, type: 'message', text: 'URANAI!' },
+              ],
+            }
+          );
+          break;  
         default:
-          event.reply(event.message.text).then(function (data) {
+          str = event.message.text;
+          substr = 'VANCE';
+          substr2 = 'WOODY';
+
+          if(str.toUpperCase().indexOf(substr) > -1) {
+            replayStr = 'Replay: '+ event.message.text +' ==> Allen think '+ substr+' is bitch!!! ';
+          }else if(str.toUpperCase().indexOf(substr2) > -1) {
+            replayStr = 'Replay: '+ event.message.text +' ==> People think '+ substr2+' is rich!!! ';
+          }else{
+            replayStr = 'Replay:'+ event.message.text;
+          }
+          
+          event.reply(replayStr.toUpperCase()).then(function (data) {
             console.log('Success', data);
           }).catch(function (error) {
             console.log('Error', error);
@@ -127,13 +293,25 @@ bot.on('leave', function (event) {
 });
 
 bot.on('postback', function (event) {
-  event.reply('postback: ' + event.postback.data);
+  let data = event.postback.data;
+  if (data === 'DATE' || data === 'TIME' || data === 'DATETIME') {
+    data += `(${JSON.stringify(event.postback.params)})`;
+  }
+  return event.reply( 'Got postback: '+ data);
+  
+  //event.reply('postback: ' + event.postback.data);
 });
 
 bot.on('beacon', function (event) {
   event.reply('beacon: ' + event.beacon.hwid);
 });
 
-bot.listen('/linewebhook', process.env.PORT || 80, function () {
+// 用 Function 接，參數第一個為 Request ，第二個為 Response
+// 第三個為 Callback function
+app.get('/linewebhook', function (req, res, next) {
+  res.send('Hello World!')
+});
+
+bot.listen('/linewebhook', process.env.PORT || 8080, function () {
   console.log('LineBot is running.');
 });

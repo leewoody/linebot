@@ -33,7 +33,11 @@
   "dependencies": {
     "body-parser": "^1.18.2",
     "debug": "^3.1.0",
-    "node-fetch": "^1.7.3"
+    "dotenv": "^5.0.1",
+    "express": "^4.16.3",
+    "iconv": "^2.3.0",
+    "node-fetch": "^1.7.3",
+    "supports-color": "^5.4.0"
   },
   "devDependencies": {
     "eslint": "^4.16.0",
